@@ -1,146 +1,178 @@
 import pytest
 from datetime import date, timedelta
-from comprar_entradas import (
-    validar_fecha_visita, validar_cantidad_entradas, validar_forma_pago,
-    procesar_compra, calcular_monto_total, validar_email
-)
+from parque_aventura import Usuario, Compra
+
+# Se simula un usuario con sesión iniciada y registrado
+
+
+@pytest.fixture
+def usuario_registrado():
+    """Fixture que simula un objeto de usuario registrado y logueado."""
+    return Usuario("usuario@registrado.com", registrado=True)
+
+
+@pytest.fixture
+def usuario_no_registrado():
+    """Fixture que simula un objeto de usuario no registrado."""
+    return Usuario("nadie@dominio.com", registrado=False)
+
 
 # ------------------------------------------------------------------------
-# VALIDACIONES UNITARIAS BÁSICAS
+# TESTS
 # ------------------------------------------------------------------------
 
-
-def test_validar_email():
-    """⚙️ INFERIDA: validar formato de email."""
-    assert validar_email("usuario@example.com") is True
-    assert validar_email("pepe123@mail.com") is True
-    assert validar_email("sin_arroba.com") is False
-    assert validar_email("mal@correo") is False
-    assert validar_email("") is False
-    print("✅ test_validar_email pasado")
-
-
-def test_fecha_visita_valida():
-    assert validar_fecha_visita(date.today()) is True
-    assert validar_fecha_visita(date.today() + timedelta(days=5)) is True
-    assert validar_fecha_visita(date.today() - timedelta(days=1)) is False
-    print("✅ test_fecha_visita_valida pasado")
-
-
-def test_cantidad_entradas_valida():
-    assert validar_cantidad_entradas(1) is True
-    assert validar_cantidad_entradas(10) is True
-    assert validar_cantidad_entradas(11) is False
-    assert validar_cantidad_entradas(0) is False
-    print("✅ test_cantidad_entradas_valida pasado")
-
-
-def test_forma_pago_valida():
-    assert validar_forma_pago("efectivo") is True
-    assert validar_forma_pago("tarjeta") is True
-    assert validar_forma_pago("bitcoin") is False
-    print("✅ test_forma_pago_valida pasado")
-
-
-def test_calculo_monto_total():
-    assert calcular_monto_total(2, "regular") == 20000
-    assert calcular_monto_total(2, "VIP") == 30000
-    print("✅ test_calculo_monto_total pasado")
-
-# ------------------------------------------------------------------------
-# PRUEBAS DE ACEPTACIÓN – SEGÚN ENUNCIADO OFICIAL
-# ------------------------------------------------------------------------
-
-
-def test_compra_exitosa_tarjeta():
-    """✅ PRUEBA DEL ENUNCIADO: compra válida con pago por tarjeta (Mercado Pago)."""
-    usuario = {"registrado": True}
-    fecha = date.today() + timedelta(days=1)
-    resultado = procesar_compra(
-        usuario, fecha, 2, [25, 30], "regular", "tarjeta")
+def test_compra_exitosa_tarjeta(usuario_registrado):
+    """Compra válida con tarjeta (Mercado Pago)"""
+    fecha = date.today() + timedelta(days=2)  # Una fecha futura válida
+    compra = Compra(usuario_registrado, fecha, 2, [
+                    25, 30], "regular", "tarjeta")
+    resultado = compra.procesar()
     assert resultado["ok"] is True
     assert "Mercado Pago" in resultado["mensaje"]
-    print("✅ test_compra_exitosa_tarjeta pasado")
 
 
-def test_compra_sin_forma_pago():
-    """✅ PRUEBA DEL ENUNCIADO: sin seleccionar forma de pago."""
-    usuario = {"registrado": True}
+def test_compra_sin_forma_pago(usuario_registrado):
+    """Falla sin forma de pago"""
     fecha = date.today() + timedelta(days=2)
-    resultado = procesar_compra(usuario, fecha, 2, [25, 30], "VIP", None)
+    compra = Compra(usuario_registrado, fecha, 2, [25, 30], "VIP", None)
+    resultado = compra.procesar()
     assert resultado["ok"] is False
-    print("✅ test_compra_sin_forma_pago pasado")
+    assert "forma de pago" in resultado["mensaje"]
 
 
-def test_compra_fecha_cerrado():
-    """✅ PRUEBA DEL ENUNCIADO: fecha de visita en día que el parque está cerrado (lunes)."""
-    usuario = {"registrado": True}
-    dias_hasta_lunes = (7 - date.today().weekday()) % 7  # próximo lunes
-    fecha = date.today() + timedelta(days=dias_hasta_lunes)
-    resultado = procesar_compra(
-        usuario, fecha, 2, [25, 30], "regular", "efectivo")
+def test_compra_fecha_cerrado(usuario_registrado):
+    """Falla si el parque está cerrado (domingo)"""
+    hoy = date.today()
+    # Calculamos cuántos días faltan para el próximo domingo (weekday() == 6)
+    dias_hasta_domingo = (6 - hoy.weekday() + 7) % 7
+    fecha_cerrado = hoy + timedelta(days=dias_hasta_domingo)
+
+    compra = Compra(usuario_registrado, fecha_cerrado,
+                    2, [25, 30], "regular", "efectivo")
+    resultado = compra.procesar()
     assert resultado["ok"] is False
-    print("✅ test_compra_fecha_cerrado pasado")
+    assert "parque está cerrado" in resultado["mensaje"]
 
 
-def test_compra_mas_de_10_entradas():
-    """✅ PRUEBA DEL ENUNCIADO: más de 10 entradas."""
-    usuario = {"registrado": True}
+def test_compra_mas_de_10_entradas(usuario_registrado):
+    """Falla si se piden más de 10 entradas"""
     fecha = date.today() + timedelta(days=3)
-    resultado = procesar_compra(
-        usuario, fecha, 11, [20]*11, "regular", "tarjeta")
+    compra = Compra(usuario_registrado, fecha, 11,
+                    [20]*11, "regular", "tarjeta")
+    resultado = compra.procesar()
     assert resultado["ok"] is False
-    print("✅ test_compra_mas_de_10_entradas pasado")
+    assert "Cantidad de entradas inválida" in resultado["mensaje"]
 
 # ------------------------------------------------------------------------
-# PRUEBAS DE ACEPTACIÓN – INFERIDAS DE LOS CRITERIOS DE ACEPTACIÓN
+# TESTS INFERIDOS
 # ------------------------------------------------------------------------
 
 
-def test_compra_usuario_no_registrado():
-    """⚙️ INFERIDA: solo usuarios registrados pueden comprar."""
-    usuario = {"registrado": False}
+def test_compra_usuario_no_registrado(usuario_no_registrado):
+    """Solo usuarios registrados pueden comprar"""
     fecha = date.today() + timedelta(days=1)
-    resultado = procesar_compra(
-        usuario, fecha, 2, [25, 30], "regular", "efectivo")
+    compra = Compra(usuario_no_registrado, fecha, 2,
+                    [25, 30], "regular", "efectivo")
+    resultado = compra.procesar()
     assert resultado["ok"] is False
-    print("✅ test_compra_usuario_no_registrado pasado")
+    assert "no está registrado" in resultado["mensaje"]
 
 
-def test_compra_sin_edades():
-    """⚙️ INFERIDA: se debe indicar la edad de cada visitante."""
-    usuario = {"registrado": True}
+def test_compra_sin_edades(usuario_registrado):
+    """Se deben indicar las edades"""
     fecha = date.today() + timedelta(days=1)
-    resultado = procesar_compra(usuario, fecha, 3, [], "regular", "tarjeta")
+    compra = Compra(usuario_registrado, fecha, 3, [],
+                    "regular", "tarjeta")  # Lista de edades vacía
+    resultado = compra.procesar()
     assert resultado["ok"] is False
-    print("✅ test_compra_sin_edades pasado")
+    assert "edad de cada visitante" in resultado["mensaje"]
 
 
-def test_compra_pago_efectivo():
-    """⚙️ INFERIDA: pago en boletería con efectivo."""
-    usuario = {"registrado": True}
+def test_compra_pago_efectivo(usuario_registrado):
+    """Pago en boletería válido"""
     fecha = date.today() + timedelta(days=2)
-    resultado = procesar_compra(
-        usuario, fecha, 2, [18, 22], "regular", "efectivo")
+    compra = Compra(usuario_registrado, fecha, 2, [
+                    18, 22], "regular", "efectivo")
+    resultado = compra.procesar()
     assert resultado["ok"] is True
     assert "Pago en boletería" in resultado["mensaje"]
-    print("✅ test_compra_pago_efectivo pasado")
 
 
-def test_compra_tipo_vip():
-    """⚙️ INFERIDA: compra con tipo de pase VIP."""
-    usuario = {"registrado": True}
+def test_compra_tipo_vip(usuario_registrado):
+    """Pase VIP válido"""
     fecha = date.today() + timedelta(days=2)
-    resultado = procesar_compra(usuario, fecha, 2, [18, 22], "VIP", "tarjeta")
+    compra = Compra(usuario_registrado, fecha, 2, [18, 22], "VIP", "tarjeta")
+    resultado = compra.procesar()
+    monto_esperado = 2 * 15000  # 2 entradas VIP
     assert resultado["ok"] is True
     assert "Mercado Pago" in resultado["mensaje"]
-    print("✅ test_compra_tipo_vip pasado")
+    assert str(int(monto_esperado)) in resultado["mensaje"]
 
 
-def test_compra_fecha_futura_valida():
-    """⚙️ INFERIDA: fecha futura válida dentro de días abiertos."""
-    usuario = {"registrado": True}
-    fecha = date.today() + timedelta(days=10)
-    resultado = procesar_compra(usuario, fecha, 1, [30], "regular", "efectivo")
+def test_compra_fecha_futura_valida(usuario_registrado):
+    """✅ FALTANTE: Fecha futura válida"""
+    fecha_futura = date.today() + timedelta(days=10)
+    # Nos aseguramos de que la fecha no caiga en domingo
+    if fecha_futura.weekday() == 6:
+        fecha_futura += timedelta(days=1)
+
+    compra = Compra(usuario_registrado, fecha_futura,
+                    1, [30], "regular", "efectivo")
+    resultado = compra.procesar()
     assert resultado["ok"] is True
-    print("✅ test_compra_fecha_futura_valida pasado")
+    assert "Compra confirmada" in resultado["mensaje"]
+
+
+# ------------------------------------------------------------------------
+# TESTS ADICIONALES
+# ------------------------------------------------------------------------
+
+def test_compra_fecha_hoy_es_valida(usuario_registrado):
+    """Prueba que se pueda comprar para el día actual."""
+    fecha_hoy = date.today()
+    # Si hoy es domingo (día cerrado), el test no aplica y debe pasar.
+    if fecha_hoy.weekday() == 6:
+        pytest.skip("Hoy es domingo, el parque está cerrado.")
+
+    compra = Compra(usuario_registrado, fecha_hoy,
+                    1, [30], "regular", "efectivo")
+    resultado = compra.procesar()
+    assert resultado["ok"] is True
+    assert "Compra confirmada" in resultado["mensaje"]
+
+
+def test_compra_fecha_pasada_falla(usuario_registrado):
+    """Prueba que no se pueda comprar para una fecha pasada."""
+    fecha_pasada = date.today() - timedelta(days=1)
+    compra = Compra(usuario_registrado, fecha_pasada,
+                    1, [30], "regular", "efectivo")
+    resultado = compra.procesar()
+    assert resultado["ok"] is False
+    assert "La fecha no es válida" in resultado["mensaje"]
+
+
+def test_compra_cantidad_limite_inferior_valida(usuario_registrado):
+    """Prueba que se pueda comprar exactamente 1 entrada."""
+    fecha = date.today() + timedelta(days=2)
+    compra = Compra(usuario_registrado, fecha, 1, [40], "VIP", "tarjeta")
+    resultado = compra.procesar()
+    assert resultado["ok"] is True
+
+
+def test_compra_cantidad_limite_superior_valida(usuario_registrado):
+    """Prueba que se puedan comprar exactamente 10 entradas."""
+    fecha = date.today() + timedelta(days=2)
+    edades = [25] * 10
+    compra = Compra(usuario_registrado, fecha, 10,
+                    edades, "regular", "efectivo")
+    resultado = compra.procesar()
+    assert resultado["ok"] is True
+
+
+def test_compra_cantidad_cero_falla(usuario_registrado):
+    """Prueba que no se puedan comprar 0 entradas."""
+    fecha = date.today() + timedelta(days=2)
+    compra = Compra(usuario_registrado, fecha, 0, [], "regular", "tarjeta")
+    resultado = compra.procesar()
+    assert resultado["ok"] is False
+    assert "Cantidad de entradas inválida" in resultado["mensaje"]

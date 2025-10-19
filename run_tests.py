@@ -23,7 +23,7 @@ class TestReporter:
 
 def run_and_report():
     reporter = TestReporter()
-    # Ejecutar pytest con nuestro plugin personalizado
+
     pytest.main(["-q", "test_comprar_entradas.py"], plugins=[reporter])
 
     print("\n🧪 RESULTADOS DE LOS TESTS DE COMPRA DE ENTRADAS")
