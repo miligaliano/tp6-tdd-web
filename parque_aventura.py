@@ -126,6 +126,36 @@ class Compra:
 ## CLASES DE UI INTEGRADAS
 ## ------------------------------------------------------------------------
 
+def enviar_correo_confirmacion(cuerpo_mensaje, destinatario_email):
+    import os
+    import ssl
+    import smtplib
+    from email.message import EmailMessage
+
+    EMAIL_EMISOR = os.environ.get("EMAIL_EMISOR")
+    PASSWORD_EMISOR = os.environ.get("PASSWORD_EMISOR")
+    SIMULATE_EMAIL = os.environ.get("SIMULATE_EMAIL", "1")
+
+    msg = EmailMessage()
+    msg['Subject'] = "Confirmación de Compra - EcoHarmony Park"
+    msg['From'] = EMAIL_EMISOR if EMAIL_EMISOR else "simulado@local"
+    msg['To'] = destinatario_email
+    msg.set_content(f"¡Gracias por tu compra!\n\nAquí está el resumen:\n\n{cuerpo_mensaje}")
+
+    if not EMAIL_EMISOR or not PASSWORD_EMISOR:
+        if SIMULATE_EMAIL == "1":
+            print(f"Simulación: correo enviado a {destinatario_email} (credenciales no configuradas).")
+            return True
+        else:
+            raise ValueError("Credenciales de email no encontradas.")
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
+        smtp.login(EMAIL_EMISOR, PASSWORD_EMISOR)
+        smtp.send_message(msg)
+    return True
+
+
 
 class VentanaPagoTarjeta(ctk.CTkToplevel):
     """Ventana modal para el pago con tarjeta y envío de recibo por email.
