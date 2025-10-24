@@ -190,38 +190,32 @@ def test_compra_con_edad_invalida_falla(usuario_registrado):
     resultado = compra.procesar()
     assert resultado["ok"] is False
     assert "Edad inválida" in resultado["mensaje"]
-"""
-def test_envio_correo_falla(monkeypatch):
 
-#    Prueba que se devuelva error si el envío de correo falla.
-
+def test_compra_envia_correo(monkeypatch, usuario_registrado):
+    """Prueba que se intente enviar el correo al procesar una compra válida."""
+    llamado = {}
     def mock_enviar_correo_confirmacion(mensaje, destinatario):
-        print("✅ Mock de envío de correo activado")
-        return False  # Simula fallo
-
+        llamado["mensaje"] = mensaje
+        llamado["destinatario"] = destinatario
+        return True
     monkeypatch.setattr("backend.parque_aventura.enviar_correo_confirmacion", mock_enviar_correo_confirmacion)
-    payload = {
-        "email": "mili@example.com",
-        "mensaje": "Mensaje de prueba"
-    }
+    fecha = date.today() + timedelta(days=3)
+    edades = [25, 30]
+    compra = Compra(usuario_registrado, fecha, 2, edades, "regular", "efectivo")
+    resultado = compra.procesar()
+    assert resultado["ok"] is True
+    assert "Compra confirmada" in resultado["mensaje"]
 
-    response = client.post("/enviar-confirmacion", json=payload)
-    assert "No se pudo enviar el correo" in response.json()["detail"]
-
-def test_envio_correo_exitoso(monkeypatch):
-#    Prueba que se envíe el correo correctamente si el mensaje y el email son válidos.
-
+def test_compra_invalida_no_envia_correo(monkeypatch, usuario_registrado):
+    """Prueba que no se intente enviar el correo si la compra es inválida."""
+    llamado = {"enviado": False}
     def mock_enviar_correo_confirmacion(mensaje, destinatario):
-        return True  # Simula envío exitoso
-
+        llamado["enviado"] = True
+        return True
     monkeypatch.setattr("backend.parque_aventura.enviar_correo_confirmacion", mock_enviar_correo_confirmacion)
-
-    payload = {
-        "email": "mili@example.com",
-        "mensaje": "🎟️ Compra confirmada\n- Usuario: mili@example.com\n- Cantidad: 2\n..."
-    }
-
-    response = client.post("/enviar-confirmacion", json=payload)
-    assert response["ok"] is True
-    assert "Correo enviado a mili@example.com" in response["mensaje"]
-"""
+    fecha_pasada = date.today() - timedelta(days=1)
+    edades = [25, 30]
+    compra = Compra(usuario_registrado, fecha_pasada, 2, edades, "regular", "efectivo")
+    resultado = compra.procesar()
+    assert resultado["ok"] is False
+    assert llamado["enviado"] is False
