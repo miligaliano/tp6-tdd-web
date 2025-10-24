@@ -1,4 +1,6 @@
 import pytest
+from tests.test_comprar_entradas import *  # o usar import directo si preferís
+
 
 
 class TestReporter:
@@ -24,7 +26,7 @@ class TestReporter:
 def run_and_report():
     reporter = TestReporter()
 
-    pytest.main(["-q", "test_comprar_entradas.py"], plugins=[reporter])
+    pytest.main(["-q", "tests/test_comprar_entradas.py"], plugins=[reporter])
 
     print("\n🧪 RESULTADOS DE LOS TESTS DE COMPRA DE ENTRADAS")
     print("──────────────────────────────────────────────")

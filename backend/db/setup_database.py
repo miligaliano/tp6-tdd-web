@@ -9,7 +9,9 @@ def inicializar_bd():
     usuarios_ejemplo = [
         ("usuario@registrado.com", "Juan Perez",
          "pbkdf2:sha256:150000$aBcDeFg$123..."),
-        ("otro@usuario.com", "Ana Lopez", "pbkdf2:sha256:150000$hIjKlMn$456...")
+        ("otro@usuario.com", "Ana Lopez", "pbkdf2:sha256:150000$hIjKlMn$456..."),
+        ("miligaliano@gmail.com", "Mili Galiano",
+         "pbkdf2:sha256:150000$aBcDeFg$123..."),
     ]
 
     try:

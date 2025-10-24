@@ -1,6 +1,6 @@
 import re
 from datetime import date
-from database import buscar_usuario_por_email, obtener_conexion, crear_tabla_usuarios
+from .db.database import buscar_usuario_por_email, obtener_conexion, crear_tabla_usuarios
 import customtkinter as ctk
 from calendar import monthrange
 
@@ -86,6 +86,10 @@ class Compra:
     def _validar_edades(self):
         if not self.edades or len(self.edades) != self.cantidad:
             self.errores.append("Debe indicar la edad de cada visitante.")
+            return
+
+        if any(e <= 0 for e in self.edades):
+            self.errores.append("Edad inválida: todas deben ser mayores a 0.")
 
     def _validar_forma_pago(self):
         if self.forma_pago not in ["efectivo", "tarjeta"]:
@@ -112,8 +116,8 @@ class Compra:
             return {"ok": False, "mensaje": " ".join(self.errores)}
 
         total = self.calcular_monto_total()
-        mensaje = f"Compra confirmada para {self.usuario.email}: {self.cantidad} entradas para el {self.fecha_visita} por ${total}."
-
+        mensaje = (f"🎟️ Compra confirmada\n" f"- Usuario: {self.usuario.email}\n"f"- Cantidad de entradas: {self.cantidad}\n"f"- Fecha de visita: {self.fecha_visita.strftime('%d/%m/%Y')}\n"f"- Precio total: ${total}\n"f"- Forma de pago: {self.forma_pago.capitalize()}\n")
+        
         if self.forma_pago == "tarjeta":
             mensaje += " Redirigiendo a Mercado Pago..."
         else:

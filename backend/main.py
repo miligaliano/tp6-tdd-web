@@ -3,14 +3,16 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, EmailStr
 from datetime import date
 from fastapi.middleware.cors import CORSMiddleware
-from parque_aventura import Usuario, Compra
-from database import crear_tabla_usuarios, buscar_usuario_por_email
-from parque_aventura import enviar_correo_confirmacion
+
+from backend.parque_aventura import Usuario, Compra
+from backend.db.database import crear_tabla_usuarios
+from backend.parque_aventura import enviar_correo_confirmacion  # si lo separaste
+
 
 app = FastAPI(title="EcoHarmony Park API")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # o ["http://localhost:8080"] si servís el frontend ahí
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

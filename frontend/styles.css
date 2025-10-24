@@ -4,6 +4,8 @@ body {
   color: #134611;
   margin: 0;
   padding: 0;
+  display: flex;
+  justify-content: center;
 }
 
 .container {
@@ -60,4 +62,67 @@ button:hover {
   padding: 10px;
   background-color: #f0fff0;
   border-left: 4px solid #3da35d;
+}
+
+.error {
+  color: red;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.edad-group {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+}
+
+.input-error {
+  border: 2px solid red;
+}
+.edad-error {
+  color: red;
+  font-size: 0.9rem;
+  margin-top: 4px;
+  display: block;
+}
+
+.precio-total {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 15px 0;
+  color: #2e7d32; /* verde oscuro */
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 15px;
+    margin: 10px;
+    border-radius: 8px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  input, select, button {
+    font-size: 1rem;
+    padding: 8px;
+  }
+
+  label {
+    font-size: 0.95rem;
+  }
+
+  .logo {
+    width: 80px;
+    margin-bottom: 10px;
+  }
+
+  button {
+    margin-top: 15px;
+  }
+
+  #resultado {
+    font-size: 0.95rem;
+  }
 }

@@ -1,8 +1,6 @@
 # 🎡 Parque Aventura - Sistema de Compra de Entradas (ISW - 2025)
 
-Este proyecto es una implementación en Python utilizando Programación Orientada a Objetos (POO) para gestionar la compra de entradas del bioparque "EcoHarmony Park", como parte del práctico de la materia Ingeniería y Calidad de Software.
-
-La aplicación cuenta con una lógica de negocio encapsulada, gestión de usuarios a través de una base de datos **SQLite** y una interfaz gráfica simple construida con **CustomTkinter**.
+Este proyecto es una aplicación web para la gestión de compra de entradas del parque EcoHarmony. Incluye un backend en Python con FastAPI, un frontend web personalizado con HTML/CSS/JS, y una base de datos SQLite para usuarios registrados.
 
 ---
 
@@ -43,12 +41,22 @@ pip install customtkinter
 
 ### Paso 2: Crear e Inicializar la Base de Datos (Ejecuta en la consola el siguiente comando)
 
-python setup_database.py
+python backend/db/setup_database.py
 
 ### Paso 3: Ejecutar la Suite de Pruebas (Ejecuta en la consola el siguiente comando)
 
-python run_tests.py
+python tests/run_tests.py
 
-### Paso 4: Iniciar la Interfaz de Usuario (UI) (Ejecuta en la consola el siguiente comando)
+### Paso 4: Instalar dependencias (Ejecuta en la consola el siguiente comando)
 
-python ui_comprar_entradas.py
+pip install -r requirements.txt
+
+### Paso 5: Iniciar el backend (Ejecuta en la consola el siguiente comando)
+
+python -m uvicorn backend.main:app --reload
+
+### Paso 6: Iniciar el frontend (Ejecuta en la consola el siguiente comando)
+
+cd frontend
+python -m http.server 8080
+
