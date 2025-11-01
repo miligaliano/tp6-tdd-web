@@ -1,55 +1,113 @@
 # main.py
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, EmailStr
-from datetime import date
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-from backend.parque_aventura import Usuario, Compra
-from backend.db.database import crear_tabla_usuarios
-from backend.parque_aventura import enviar_correo_confirmacion  # si lo separaste
+app = FastAPI()
 
-
-app = FastAPI(title="EcoHarmony Park API")
+# CORS para permitir llamadas desde el frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Inicializar BD al arrancar
-crear_tabla_usuarios()
-
-class CompraRequest(BaseModel):
-    email: EmailStr
-    fecha_visita: date
+# ---- MODELO ----
+class Compra(BaseModel):
+    email: str
+    fecha_visita: str
     cantidad: int
-    edades: list[int]
-    tipo_pase: str
+    edades: List[int]
+    tipo_pase: List[str]
     forma_pago: str
 
+# ---- FUNCIONES ----
+def obtener_descuento_por_edad(edad):
+    if edad < 3:
+        return 1.0  # 100% de descuento
+    elif edad < 15:
+        return 0.5  # 50% de descuento
+    elif edad < 60:
+        return 0.0  # sin descuento
+    elif edad <= 110:
+        return 0.5  # 50% de descuento
+    else:
+        raise ValueError("Edad fuera de rango")
+
+def obtener_precio_base(tipo_pase):
+    precios = {
+        "regular": 5000,
+        "VIP": 10000
+    }
+    return precios.get(tipo_pase.lower(), 0)
+
+# ---- ENDPOINT PRINCIPAL ----
 @app.post("/comprar")
-def procesar_compra(data: CompraRequest):
-    usuario = Usuario.desde_la_sesion(data.email)
-    compra = Compra(usuario, data.fecha_visita, data.cantidad, data.edades, data.tipo_pase, data.forma_pago)
-    resultado = compra.procesar()
+def comprar(compra: Compra):
+    if len(compra.edades) != compra.cantidad or len(compra.tipo_pase) != compra.cantidad:
+        raise HTTPException(status_code=400, detail="Los datos de visitantes no coinciden con la cantidad ingresada.")
 
-    if not resultado["ok"]:
-        raise HTTPException(status_code=400, detail=resultado["mensaje"])
-    return resultado
+    total = 0
+    detalle = []
 
-class EmailRequest(BaseModel):
-    email: EmailStr
-    mensaje: str
+    for edad, tipo_pase in zip(compra.edades, compra.tipo_pase):
+        if edad < 0 or edad > 110:
+            raise HTTPException(status_code=400, detail=f"Edad inválida: {edad}")
 
+        precio_base = obtener_precio_base(tipo_pase)
+        descuento = obtener_descuento_por_edad(edad)
+        precio_final = precio_base * (1 - descuento)
+        total += precio_final
+
+        detalle.append(f"{tipo_pase.title()} - Edad {edad}: ${precio_final:.2f}")
+
+    mensaje = (
+        f"Compra registrada correctamente.<br><br>"
+        f"Fecha de visita: {compra.fecha_visita}<br>"
+        f"Forma de pago: {compra.forma_pago}<br>"
+        f"Entradas: {compra.cantidad}<br><br>"
+        f"Detalle:<br>" + "<br>".join(detalle) +
+        f"<br><br>💰 Total a pagar: ${total:.2f}"
+    )
+
+    if compra.forma_pago.strip().lower() == "tarjeta":
+        mensaje += "<br><br> Redirigiendo a Mercado Pago..."
+    else:
+        mensaje += "<br><br> Pago en boletería."
+
+    return {"mensaje": mensaje}
+
+
+# ---- ENDPOINT DE EMAIL ----
 @app.post("/enviar-confirmacion")
-def enviar_email(data: EmailRequest):
+def enviar_confirmacion(data: dict):
     try:
-        enviado = enviar_correo_confirmacion(data.mensaje, data.email)
-        if enviado:
-            return {"ok": True, "mensaje": f"Correo enviado a {data.email}"}
-        else:
-            raise HTTPException(status_code=500, detail="No se pudo enviar el correo.")
+        remitente = "tu_correo@ejemplo.com"
+        destinatario = data.get("email")
+        mensaje = data.get("mensaje")
+
+        msg = MIMEMultipart()
+        msg["From"] = remitente
+        msg["To"] = destinatario
+        msg["Subject"] = "Confirmación de compra - Parque Aventura"
+        msg.attach(MIMEText(mensaje, "plain"))
+
+        # Aquí se puede usar un servidor SMTP real, por ejemplo Gmail
+        # smtp = smtplib.SMTP("smtp.gmail.com", 587)
+        # smtp.starttls()
+        # smtp.login(remitente, "tu_contraseña")
+        # smtp.sendmail(remitente, destinatario, msg.as_string())
+        # smtp.quit()
+
+        print("Correo simulado enviado a:", destinatario)
+        print("Mensaje:\n", mensaje)
+
+        return {"ok": True, "mensaje": "Correo enviado correctamente (simulado)."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

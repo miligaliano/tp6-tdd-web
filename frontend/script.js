@@ -1,65 +1,102 @@
 const cantidadInput = document.querySelector('input[name="cantidad"]');
-const tipoPaseSelect = document.querySelector('select[name="tipo_pase"]');
 const edadesContainer = document.getElementById("edades-container");
 const errorCantidad = document.getElementById("error-cantidad");
 const fechaInput = document.querySelector('input[name="fecha_visita"]');
 const errorFecha = document.getElementById("error-fecha");
 const btnComprar = document.querySelector('button[type="submit"]');
-function actualizarPrecioTotal() {
-  const cantidad = parseInt(cantidadInput.value);
-  const tipoPase = document.querySelector('select[name="tipo_pase"]').value;
-  const precioTotalDiv = document.getElementById("precio-total");
+const precioTotalDiv = document.getElementById("precio-total");
 
-  const precios = {
-    regular: 10000,
-    VIP: 15000
-  };
+// --- Precios base ---
+const precios = {
+  regular: 5000,
+  VIP: 10000
+};
 
-  const precioUnitario = precios[tipoPase] || 0;
-  const total = !isNaN(cantidad) ? cantidad * precioUnitario : 0;
+// --- Lista de días festivos (YYYY-MM-DD) ---
+const diasFestivos = [
+  "2025-01-01", "2025-03-24", "2025-04-02", "2025-05-01",
+  "2025-05-25", "2025-06-17", "2025-06-20", "2025-07-09", "2025-08-17", "2025-10-12", "2025-11-20", "2025-12-08",
+  "2025-12-25"
+];
 
-  precioTotalDiv.textContent = `💰 Total a pagar: $${total}`;
+// --- Función para calcular descuento según edad ---
+function obtenerDescuentoPorEdad(edad) {
+  if (edad >= 0 && edad < 3) return 1.0;    // 100%
+  if (edad >= 3 && edad < 15) return 0.5;   // 50%
+  if (edad >= 15 && edad < 60) return 0.0;  // 0%
+  if (edad >= 60 && edad <= 110) return 0.5;// 50%
+  return 0.0;
 }
 
+// --- Calcular total dinámicamente ---
+function actualizarPrecioTotal() {
+  const visitantes = edadesContainer.querySelectorAll(".visitante-group");
+  let total = 0;
+
+  visitantes.forEach(v => {
+    const edadInput = v.querySelector("input[type='number']");
+    const paseSelect = v.querySelector("select");
+    const edad = parseInt(edadInput.value);
+    const tipoPase = paseSelect.value;
+    const precioBase = precios[tipoPase] || 0;
+
+    if (!isNaN(edad) && edad >= 0 && edad <= 110) {
+      const descuento = obtenerDescuentoPorEdad(edad);
+      total += precioBase * (1 - descuento);
+    }
+  });
+
+  precioTotalDiv.textContent = `💰 Total a pagar: $${total.toFixed(2)}`;
+}
+
+// --- Obtener fecha hoy en formato YYYY-MM-DD ---
 function obtenerFechaHoy() {
   const hoy = new Date();
   const yyyy = hoy.getFullYear();
-  const mm = String(hoy.getMonth() + 1).padStart(2, '0'); // Meses van de 0 a 11
+  const mm = String(hoy.getMonth() + 1).padStart(2, '0');
   const dd = String(hoy.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`; // Formato: "2025-10-24"
+  return `${yyyy}-${mm}-${dd}`;
 }
+
+// --- Validar fecha ---
 fechaInput.addEventListener("input", () => {
   const valor = fechaInput.value;
   const fechaSeleccionada = new Date(valor);
-  const hoy = obtenerFechaHoy();
+  const hoy = new Date(obtenerFechaHoy());
+  const limite = new Date(hoy);
+  limite.setMonth(limite.getMonth() + 1); // máximo un mes
 
-  const diaSemana = fechaSeleccionada.getDay(); // 6 = domingo
+  const diaSemana = fechaSeleccionada.getDay(); // 0 = domingo, 1 = lunes
 
-  errorFecha.textContent = ""; // Limpiar mensaje anterior
+  errorFecha.textContent = "";
+  btnComprar.disabled = false;
 
   if (isNaN(fechaSeleccionada.getTime())) {
-    fechaInput.classList.add("input-error");
     errorFecha.textContent = "⚠️ Debes seleccionar una fecha válida.";
     btnComprar.disabled = true;
     return;
   }
 
-  if (valor < hoy) {
-    fechaInput.classList.add("input-error");
+  // Validaciones
+  if (fechaSeleccionada < hoy) {
     errorFecha.textContent = "⚠️ La fecha no puede ser anterior a hoy.";
     btnComprar.disabled = true;
-  } else if (diaSemana === 6) {
-    fechaInput.classList.add("input-error");
-    errorFecha.textContent = "🚫 El parque está cerrado los domingos.";
+  } else if (fechaSeleccionada > limite) {
+    errorFecha.textContent = "⚠️ Solo se pueden reservar entradas hasta 1 mes antes.";
+    btnComprar.disabled = true;
+  } else if (diaSemana === 0) { // lunes cerrado
+    errorFecha.textContent = "🚫 El parque está cerrado los lunes.";
+    btnComprar.disabled = true;
+  } else if (diasFestivos.includes(valor)) {
+    errorFecha.textContent = "🚫 El parque está cerrado en días festivos.";
     btnComprar.disabled = true;
   } else {
-    fechaInput.classList.remove("input-error");
-    errorFecha.textContent = ""; // Fecha válida
+    errorFecha.textContent = "";
     btnComprar.disabled = false;
   }
 });
 
-
+// --- Generar campos de visitantes dinámicamente ---
 cantidadInput.addEventListener("input", () => {
   const cantidad = parseInt(cantidadInput.value);
   edadesContainer.innerHTML = "";
@@ -79,44 +116,64 @@ cantidadInput.addEventListener("input", () => {
 
   for (let i = 0; i < cantidad; i++) {
     const group = document.createElement("div");
-    group.className = "edad-group";
+    group.className = "visitante-group";
 
-    const label = document.createElement("label");
-    label.textContent = `Edad visitante ${i + 1}:`;
+    // Edad
+    const labelEdad = document.createElement("label");
+    labelEdad.textContent = `Edad visitante ${i + 1}: `;
 
-    const input = document.createElement("input");
-    input.type = "number";
-    input.name = `edad_${i}`;
-    input.required = true;
+    const inputEdad = document.createElement("input");
+    inputEdad.type = "number";
+    inputEdad.name = `edad_${i}`;
+    inputEdad.min = 1;
+    inputEdad.max = 110;
+    inputEdad.required = true;
 
-    const errorSpan = document.createElement("span"); // ✅ Crear antes del listener
+    const errorSpan = document.createElement("span");
     errorSpan.className = "edad-error";
-    errorSpan.textContent = "";
 
-    // ✅ Validación en tiempo real
-    input.addEventListener("input", () => {
-      const valor = parseInt(input.value);
-      if (isNaN(valor) || valor <= 0) {
-        input.classList.add("input-error");
-        errorSpan.textContent = "⚠️ Se debe ingresar una edad válida (mayor a 0)";
+    // Tipo de pase
+    const labelPase = document.createElement("label");
+    labelPase.textContent = "Tipo de pase: ";
+
+    const selectPase = document.createElement("select");
+    selectPase.name = `pase_${i}`;
+    selectPase.innerHTML = `
+      <option value="regular">Regular</option>
+      <option value="VIP">VIP</option>
+    `;
+
+    // Listeners
+    inputEdad.addEventListener("input", () => {
+      const valor = parseInt(inputEdad.value);
+      if (isNaN(valor) || valor < 1) {
+        inputEdad.classList.add("input-error");
+        errorSpan.textContent = "⚠️ Edad inválida";
+      } else if (valor > 110) {
+        inputEdad.classList.add("input-error");
+        errorSpan.textContent = "⚠️ La edad no puede superar los 110 años";
       } else {
-        input.classList.remove("input-error");
+        inputEdad.classList.remove("input-error");
         errorSpan.textContent = "";
       }
+      actualizarPrecioTotal();
     });
 
-    group.appendChild(label);
-    group.appendChild(input);
+    selectPase.addEventListener("change", actualizarPrecioTotal);
+
+    group.appendChild(labelEdad);
+    group.appendChild(inputEdad);
     group.appendChild(errorSpan);
+    group.appendChild(labelPase);
+    group.appendChild(selectPase);
+
     edadesContainer.appendChild(group);
-    
-    actualizarPrecioTotal();
   }
+
+  actualizarPrecioTotal();
 });
 
-tipoPaseSelect.addEventListener("change", actualizarPrecioTotal);
-
-
+// --- Enviar formulario ---
 document.getElementById("form-compra").addEventListener("submit", async function (e) {
   e.preventDefault();
 
@@ -124,19 +181,21 @@ document.getElementById("form-compra").addEventListener("submit", async function
   const email = "miligaliano@gmail.com";
   const fecha_visita = form.fecha_visita.value;
   const cantidad = parseInt(form.cantidad.value);
-  const tipo_pase = form.tipo_pase.value;
   const forma_pago = form.forma_pago.value;
 
-  const edadesInputs = edadesContainer.querySelectorAll("input");
+  const visitantes = edadesContainer.querySelectorAll(".visitante-group");
   const edades = [];
+  const tipos_pase = [];
 
-  for (let input of edadesInputs) {
-    const edad = parseInt(input.value);
-    if (isNaN(edad) || edad <= 0) {
-      document.getElementById("resultado").innerHTML = `<strong>⚠️ Las edades deben ser números mayores a cero.</strong>`;
+  for (let v of visitantes) {
+    const edad = parseInt(v.querySelector("input").value);
+    const pase = v.querySelector("select").value;
+    if (isNaN(edad) || edad < 1 || edad > 110) {
+      document.getElementById("resultado").innerHTML = `<strong>⚠️ Las edades deben estar entre 1 y 110.</strong>`;
       return;
     }
     edades.push(edad);
+    tipos_pase.push(pase);
   }
 
   const payload = {
@@ -144,7 +203,7 @@ document.getElementById("form-compra").addEventListener("submit", async function
     fecha_visita,
     cantidad,
     edades,
-    tipo_pase,
+    tipo_pase: tipos_pase,
     forma_pago
   };
 
@@ -160,26 +219,19 @@ document.getElementById("form-compra").addEventListener("submit", async function
 
     if (res.ok) {
       resultado.innerHTML = `<strong>✅ ${data.mensaje}</strong>`;
-      // ✅ Enviar correo con el mensaje recibido
-  fetch("http://localhost:8000/enviar-confirmacion", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: email, // el mismo email que usaste en /comprar
-      mensaje: data.mensaje
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.ok) {
-      console.log("📩 Correo enviado correctamente");
-    } else {
-      console.error("❌ Error al enviar el correo:", data.detail);
-    }
-  })
-  .catch(err => {
-    console.error("❌ Error de conexión al enviar el correo:", err);
-  });
+
+      fetch("http://localhost:8000/enviar-confirmacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, mensaje: data.mensaje })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) console.log("📩 Correo enviado correctamente");
+          else console.error("❌ Error al enviar el correo:", data.detail);
+        })
+        .catch(err => console.error("❌ Error de conexión al enviar el correo:", err));
+
     } else {
       resultado.innerHTML = `<strong>⚠️ ${data.detail}</strong>`;
     }
