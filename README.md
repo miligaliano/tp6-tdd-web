@@ -45,7 +45,7 @@ python backend/db/setup_database.py
 
 ### Paso 3: Ejecutar la Suite de Pruebas (Ejecuta en la consola el siguiente comando)
 
-python tests/run_tests.py
+python run_tests.py
 
 ### Paso 4: Instalar dependencias (Ejecuta en la consola el siguiente comando)
 
