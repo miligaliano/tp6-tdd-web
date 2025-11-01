@@ -66,7 +66,7 @@ fechaInput.addEventListener("input", () => {
   const limite = new Date(hoy);
   limite.setMonth(limite.getMonth() + 1); // máximo un mes
 
-  const diaSemana = fechaSeleccionada.getDay(); // 0 = domingo, 1 = lunes
+  const diaSemana = fechaSeleccionada.getDay(); // 0 = lunes
 
   errorFecha.textContent = "";
   btnComprar.disabled = false;
@@ -125,7 +125,7 @@ cantidadInput.addEventListener("input", () => {
     const inputEdad = document.createElement("input");
     inputEdad.type = "number";
     inputEdad.name = `edad_${i}`;
-    inputEdad.min = 1;
+    inputEdad.min = 0;
     inputEdad.max = 110;
     inputEdad.required = true;
 
@@ -146,7 +146,7 @@ cantidadInput.addEventListener("input", () => {
     // Listeners
     inputEdad.addEventListener("input", () => {
       const valor = parseInt(inputEdad.value);
-      if (isNaN(valor) || valor < 1) {
+      if (isNaN(valor) || valor < 0) {
         inputEdad.classList.add("input-error");
         errorSpan.textContent = "⚠️ Edad inválida";
       } else if (valor > 110) {
@@ -190,8 +190,8 @@ document.getElementById("form-compra").addEventListener("submit", async function
   for (let v of visitantes) {
     const edad = parseInt(v.querySelector("input").value);
     const pase = v.querySelector("select").value;
-    if (isNaN(edad) || edad < 1 || edad > 110) {
-      document.getElementById("resultado").innerHTML = `<strong>⚠️ Las edades deben estar entre 1 y 110.</strong>`;
+    if (isNaN(edad) || edad < 0 || edad > 110) {
+      document.getElementById("resultado").innerHTML = `<strong>⚠️ Las edades deben estar entre 0 y 110.</strong>`;
       return;
     }
     edades.push(edad);

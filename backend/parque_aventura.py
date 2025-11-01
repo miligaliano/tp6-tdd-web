@@ -25,7 +25,7 @@ ctk.set_default_color_theme("blue")
 class ConfiguracionParque:
     """Centraliza las reglas y valores del parque para fácil mantenimiento."""
     DIAS_ABIERTOS = [1, 2, 3, 4,
-                     5, 6]  # Lunes a Sábado (Domingo = 6, está cerrado)
+                     5, 6]  # Martes a Domingo (Lunes = 0, está cerrado)
     PRECIOS = {
         "regular": 5000,
         "VIP": 10000
@@ -89,8 +89,8 @@ class Compra:
             self.errores.append("Debe indicar la edad de cada visitante.")
             return
 
-        if any(e <= 0 for e in self.edades):
-            self.errores.append("Edad inválida: todas deben ser mayores a 0.")
+        if any(e < 0 for e in self.edades):
+            self.errores.append("Edad inválida: todas deben ser mayores o igual a 0.")
 
     def _validar_forma_pago(self):
         if self.forma_pago not in ["efectivo", "tarjeta"]:
