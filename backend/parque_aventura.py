@@ -92,6 +92,10 @@ class Compra:
         if any(e < 0 for e in self.edades):
             self.errores.append("Edad inválida: todas deben ser mayores o igual a 0.")
 
+        if any(e > 110 for e in self.edades):
+            self.errores.append("Edad inválida: todas deben ser menores a 110.")
+
+
     def _validar_forma_pago(self):
         if self.forma_pago not in ["efectivo", "tarjeta"]:
             self.errores.append("Debe seleccionar una forma de pago válida.")

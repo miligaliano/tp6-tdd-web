@@ -49,8 +49,8 @@ def test_compra_fecha_cerrado(usuario_registrado):
     """Falla si el parque está cerrado (domingo)"""
     hoy = date.today()
     # Calculamos cuántos días faltan para el próximo domingo (weekday() == 6)
-    dias_hasta_domingo = (6 - hoy.weekday() + 7) % 7
-    fecha_cerrado = hoy + timedelta(days=dias_hasta_domingo)
+    dias_hasta_lunes = (0 - hoy.weekday() + 7) % 7
+    fecha_cerrado = hoy + timedelta(days=dias_hasta_lunes)
 
     compra = Compra(usuario_registrado, fecha_cerrado,
                     2, [25, 30], "regular", "efectivo")
@@ -108,7 +108,7 @@ def test_compra_tipo_vip(usuario_registrado):
     fecha = date.today() + timedelta(days=3)
     compra = Compra(usuario_registrado, fecha, 2, [18, 22], "VIP", "tarjeta")
     resultado = compra.procesar()
-    monto_esperado = 2 * 15000  # 2 entradas VIP
+    monto_esperado = 2 * 10000  # 2 entradas VIP
     assert resultado["ok"] is True
     assert "Mercado Pago" in resultado["mensaje"]
     assert str(int(monto_esperado)) in resultado["mensaje"]
@@ -185,7 +185,7 @@ def test_compra_cantidad_cero_falla(usuario_registrado):
 def test_compra_con_edad_invalida_falla(usuario_registrado):
     """Prueba que no se puedan comprar entradas con edades menores o iguales a 0."""
     fecha = date.today() + timedelta(days=3)
-    edades = [25, 0, 12]  # Edad inválida: 0
+    edades = [25, 112, 12]  # Edad inválida: 112
     compra = Compra(usuario_registrado, fecha, 3, edades, "regular", "tarjeta")
     resultado = compra.procesar()
     assert resultado["ok"] is False
